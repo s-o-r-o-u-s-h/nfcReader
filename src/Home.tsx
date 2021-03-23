@@ -22,6 +22,7 @@ const Home = (): ReactElement => {
       event_nfc_disabled,
       () => {
         // It means nfc is present on the device but it's disabled.
+        console.log('It');
       },
     );
     const discoveredListener = nfcEventEmitter.addListener(

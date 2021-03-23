@@ -34,6 +34,7 @@ public class NFCModule extends ReactContextBaseJavaModule implements LifecycleEv
     public NFCModule(ReactApplicationContext context) {
         super(context);
         context.addLifecycleEventListener(this);
+        context.addActivityEventListener(this);
         adapter = NfcAdapter.getDefaultAdapter(context);
     }
 
@@ -55,7 +56,7 @@ public class NFCModule extends ReactContextBaseJavaModule implements LifecycleEv
                 sb.append('0');
             sb.append(Integer.toHexString(b));
             if (i > 0) {
-                sb.append(" ");
+                sb.append("");
             }
         }
         return sb.toString();
@@ -72,6 +73,7 @@ public class NFCModule extends ReactContextBaseJavaModule implements LifecycleEv
     }
 
     public void sendEvent(String eventName, @Nullable WritableMap params) {
+        Log.d("NFC_READER_EVENT", "SENDING EVENT TO CLIENT");
         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit(eventName, params);
     }
@@ -96,6 +98,7 @@ public class NFCModule extends ReactContextBaseJavaModule implements LifecycleEv
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         final PendingIntent pendingIntent = PendingIntent.getActivity(activity.getApplicationContext(), 0, intent, 0);
+
         try {
             adapter.enableForegroundDispatch(activity, pendingIntent, null, null);
         } catch (Exception e) {
@@ -107,7 +110,8 @@ public class NFCModule extends ReactContextBaseJavaModule implements LifecycleEv
         try{
             adapter.disableForegroundDispatch(activity);
         }catch(Exception e){
-            Log.d("NFC_READER_ERROR", "Error in stopping forground dispatch");
+            Log.d("NFC_READER_ERROR", "Error in stopping foreground dispatch");
+            Log.d("NFC_READER_ERROR", e.getMessage());
         }
     }
 
@@ -127,11 +131,13 @@ public class NFCModule extends ReactContextBaseJavaModule implements LifecycleEv
         if (intent != null && intent.getAction() != null) {
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(intent.getAction())) {
-                byte[] tagId = tag.getId();
-                WritableMap params = Arguments.createMap();
-                params.putString("hexTag", toHex(tagId));
-                sendEvent(EVENT_TAG_DISCOVERED, params);
-                stopForegroundDispatch(getActivity());
+                if (tag != null) {
+                    byte[] tagId = tag.getId();
+                    WritableMap params = Arguments.createMap();
+                    params.putString("hexTag", toHex(tagId));
+                    sendEvent(EVENT_TAG_DISCOVERED, params);
+                    stopForegroundDispatch(getActivity());
+                }
             }
         }
     }
